@@ -1,10 +1,3 @@
-/**
- * particle_filter.cpp
- *
- * Created on: Dec 12, 2016
- * Author: Tiffany Huang
- */
-
 #include "particle_filter.h"
 
 #include <math.h>
@@ -49,7 +42,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
 }
 
-void ParticleFilter::prediction(double delta_t, double std_pos[], 
+void ParticleFilter::prediction(double delta_t, double std_pos[],
                                 double velocity, double yaw_rate) {
 
   normal_distribution<double> norm_x(0, std_pos[0]);
@@ -62,7 +55,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
       particles[i].x += (velocity * delta_t * cos(particles[i].theta)) + norm_x(gen);
       particles[i].y += (velocity * delta_t * sin(particles[i].theta)) + norm_y(gen);
       particles[i].theta += norm_theta(gen);
-    } 
+    }
     else {
       particles[i].x += (velocity / yaw_rate * (sin(particles[i].theta + yaw_rate*delta_t) - sin(particles[i].theta))) + norm_x(gen);
       particles[i].y += (velocity / yaw_rate * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate*delta_t))) + norm_y(gen);
@@ -72,7 +65,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 
 }
 
-void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
+void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
                                      vector<LandmarkObs>& observations) {
 
   for (auto &observation: observations) {
@@ -94,8 +87,8 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
 
 }
 
-void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
-                                   const vector<LandmarkObs> &observations, 
+void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
+                                   const vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
 
   for (int i = 0; i<particles.size(); i++) {
@@ -130,8 +123,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       closest_landmark.y = static_cast<double>(map_landmarks.landmark_list[trans_observations[j].id - 1].y_f);
 
       observation_probabilities[i] = (1 / (2 * M_PI * std_landmark[0] * std_landmark[1])) *
-                                     exp(-(pow(trans_observations[j].x - closest_landmark.x, 2.0) / 
-                                     (2 * pow(std_landmark[0], 2.0)) + pow(trans_observations[j].y - closest_landmark.y, 2.0) / 
+                                     exp(-(pow(trans_observations[j].x - closest_landmark.x, 2.0) /
+                                     (2 * pow(std_landmark[0], 2.0)) + pow(trans_observations[j].y - closest_landmark.y, 2.0) /
                                      (2 * pow(std_landmark[1], 2.0))));
 
       particles[i].weight *= observation_probabilities[j];
@@ -152,16 +145,16 @@ void ParticleFilter::resample() {
     weights.push_back(particles[i].weight);
   }
 
-  uniform_int_distribution<int> uniformintdist(0, num_particles-1);
-  auto idx = uniformintdist(gen);
+  uniform_int_distribution<int> uniform_int_dist(0, num_particles-1);
+  auto idx = uniform_int_dist(gen);
 
   double max_weight = *max_element(weights.begin(), weights.end());
 
-  uniform_real_distribution<double> uniformrealdist(0.0, max_weight);
+  uniform_real_distribution<double> uniform_real_dist(0.0, max_weight);
 
   double beta = 0.0;
   for (int i = 0; i < num_particles; i++) {
-    beta += uniformrealdist(gen) * 2.0;
+    beta += uniform_real_dist(gen) * 2.0;
     while (beta > weights[idx]) {
       beta -= weights[idx];
       idx = (idx + 1) % num_particles;
@@ -174,11 +167,11 @@ void ParticleFilter::resample() {
 
 }
 
-void ParticleFilter::SetAssociations(Particle& particle, 
-                                     const vector<int>& associations, 
-                                     const vector<double>& sense_x, 
+void ParticleFilter::SetAssociations(Particle& particle,
+                                     const vector<int>& associations,
+                                     const vector<double>& sense_x,
                                      const vector<double>& sense_y) {
-  // particle: the particle to which assign each listed association, 
+  // particle: the particle to which assign each listed association,
   //   and association's (x,y) world coordinates mapping
   // associations: The landmark id that goes along with each listed association
   // sense_x: the associations x mapping already converted to world coordinates
