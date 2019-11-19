@@ -105,7 +105,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     for (int j = 0; j<observations.size(); j++) {
       trans_observations[j].x = particles[i].y + cos(particles[i].theta) * observations[j].x - sin(particles[i].theta) * observations[j].y;
       trans_observations[j].y = particles[i].y + sin(particles[i].theta) * observations[j].x + cos(particles[i].theta) * observations[j].y;
-      trans_observations[j].id = -1
+      trans_observations[j].id = -1;
     }
 
     vector<LandmarkObs> landmarks;
@@ -147,13 +147,13 @@ void ParticleFilter::resample() {
 
   vector<Particle> updated_particles;
 
-  uniform_int_distribution<int> uniformintdist(0, num_particles-1);
-  auto idx = uniformintdist(gen);
-
   vector<double> weights;
   for (int i = 0; i < num_particles; i++) {
     weights.push_back(particles[i].weight);
   }
+
+  uniform_int_distribution<int> uniformintdist(0, num_particles-1);
+  auto idx = uniformintdist(gen);
 
   double max_weight = *max_element(weights.begin(), weights.end());
 
