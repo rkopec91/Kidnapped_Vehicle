@@ -23,16 +23,16 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   num_particles = 100;
 
-  normal_distribution<double> x_dist(0, std[0]);
-  normal_distribution<double> y_dist(0, std[1]);
-  normal_distribution<double> theta_dist(0, std[2]);
+  normal_distribution<double> x_dist(x, std[0]);
+  normal_distribution<double> y_dist(y, std[1]);
+  normal_distribution<double> theta_dist(theta, std[2]);
 
   for (int i =0; i<num_particles; i++) {
     Particle particle;
     particle.id = i;
-    particle.x = x + x_dist(gen);
-    particle.y = y + y_dist(gen);
-    particle.theta = theta + theta_dist(gen);
+    particle.x = x_dist(gen);
+    particle.y = y_dist(gen);
+    particle.theta = theta_dist(gen);
     particle.weight = 1.0;
 
     particles.push_back(particle);
@@ -91,47 +91,64 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
                                    const vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
 
-  for (int i = 0; i<particles.size(); i++) {
 
-    vector<LandmarkObs> trans_observations(observations.size());
-
-    for (int j = 0; j<observations.size(); j++) {
-      trans_observations[j].x = particles[i].y + cos(particles[i].theta) * observations[j].x - sin(particles[i].theta) * observations[j].y;
-      trans_observations[j].y = particles[i].y + sin(particles[i].theta) * observations[j].x + cos(particles[i].theta) * observations[j].y;
-      trans_observations[j].id = -1;
-    }
-
-    vector<LandmarkObs> landmarks;
-
-    for (int j = 0; j < map_landmarks.landmark_list.size(); j++) {
-
-      if (dist(particles[i].x, particles[i].y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f) <= sensor_range) {
-        landmarks.push_back(LandmarkObs{map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f, map_landmarks.landmark_list[j].id_i});
+  for (int i = 0; i < num_particles; i++) {
+    // get landmarks within range
+    vector<LandmarkObs> close_landmarks;
+    for(unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) {
+      double delta_x = particles[i].x - map_landmarks.landmark_list[j].x_f;
+      double delta_y = particles[i].y - map_landmarks.landmark_list[j].y_f;
+      if ( pow(delta_x,2.0) + pow(delta_y,2.0) <= pow(sensor_range,2.0) ) {
+        close_landmarks.push_back(LandmarkObs{ map_landmarks.landmark_list[j].id_i,
+                                                map_landmarks.landmark_list[j].x_f,
+                                                map_landmarks.landmark_list[j].y_f });
       }
     }
 
-    dataAssociation(landmarks, trans_observations);
-
-    particles[i].weight = 1.0;
-
-    vector<double> observation_probabilities(trans_observations.size());
-    for (int j = 0; j < observations.size(); j++) {
-      LandmarkObs closest_landmark;
-
-      closest_landmark.id = -1;
-      closest_landmark.x = static_cast<double>(map_landmarks.landmark_list[trans_observations[j].id - 1].x_f);
-      closest_landmark.y = static_cast<double>(map_landmarks.landmark_list[trans_observations[j].id - 1].y_f);
-
-      observation_probabilities[i] = (1 / (2 * M_PI * std_landmark[0] * std_landmark[1])) *
-                                     exp(-(pow(trans_observations[j].x - closest_landmark.x, 2.0) /
-                                     (2 * pow(std_landmark[0], 2.0)) + pow(trans_observations[j].y - closest_landmark.y, 2.0) /
-                                     (2 * pow(std_landmark[1], 2.0))));
-
-      particles[i].weight *= observation_probabilities[j];
+    // Transform observation coordinates.
+    vector<LandmarkObs> observed_marks;
+    for(unsigned int j = 0; j < observations.size(); j++) {
+      double x = cos(particles[i].theta)*observations[j].x - sin(particles[i].theta)*observations[j].y + particles[i].x;
+      double y = sin(particles[i].theta)*observations[j].x + cos(particles[i].theta)*observations[j].y + particles[i].y;
+      observed_marks.push_back(LandmarkObs{ observations[j].id, x, y });
     }
 
-    // set weights
-    weights[i] = particles[i].weight;
+    // Observation association to landmark.
+    dataAssociation(close_landmarks, observed_marks);
+
+    // reinitialize weights
+    particles[i].weight = 1.0;
+    // compute weights
+    for(unsigned int j = 0; j < observed_marks.size(); j++) {
+
+
+      double x_landmark;
+      double y_landmark;
+      unsigned int n = 0;
+      unsigned int nLandmarks = close_landmarks.size();
+      bool looking = true;
+      while( looking && n < nLandmarks ) {
+        if ( close_landmarks[n].id == observed_marks[j].id) {
+          looking = false;
+          x_landmark = close_landmarks[n].x;
+          y_landmark = close_landmarks[n].y;
+        }
+        n++;
+      }
+
+      // find deltas
+      double delta_x = observed_marks[j].x - x_landmark;
+      double delta_y = observed_marks[j].y - y_landmark;
+
+      // calculate new weight
+      double weight = ( 1/(2*M_PI*std_landmark[0]*std_landmark[1])) * exp( -( pow(delta_x,2.0)/(2*pow(std_landmark[0],2.0)) + (pow(delta_y,2.0)/(2*pow(std_landmark[1],2.0))) ) );
+      // update weight for particle
+      if (weight == 0) {
+        particles[i].weight *= 0.00001;
+      } else {
+        particles[i].weight *= weight;
+      }
+    }
   }
 
 }
