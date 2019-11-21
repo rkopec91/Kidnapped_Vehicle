@@ -13,19 +13,16 @@
 
 using std::string;
 using std::vector;
-using std::normal_distribution;
 
-using namespace std;
-
-static default_random_engine gen;
+static std::default_random_engine gen;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   num_particles = 100;
 
-  normal_distribution<double> x_dist(x, std[0]);
-  normal_distribution<double> y_dist(y, std[1]);
-  normal_distribution<double> theta_dist(theta, std[2]);
+  std::normal_distribution<double> x_dist(x, std[0]);
+  std::normal_distribution<double> y_dist(y, std[1]);
+  std::normal_distribution<double> theta_dist(theta, std[2]);
 
   for (int i =0; i<num_particles; i++) {
     Particle particle;
@@ -45,9 +42,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 void ParticleFilter::prediction(double delta_t, double std_pos[],
                                 double velocity, double yaw_rate) {
 
-  normal_distribution<double> norm_x(0, std_pos[0]);
-  normal_distribution<double> norm_y(0, std_pos[1]);
-  normal_distribution<double> norm_theta(0, std_pos[2]);
+  std::normal_distribution<double> norm_x(0, std_pos[0]);
+  std::normal_distribution<double> norm_y(0, std_pos[1]);
+  std::normal_distribution<double> norm_theta(0, std_pos[2]);
 
   for (int i = 0; i < num_particles; i++) {
 
@@ -70,7 +67,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
 
   for (int i = 0; i < observations.size(); i++) {
 
-    double minimum_distance = numeric_limits<double>::max();
+    double minimum_distance = std::numeric_limits<double>::max();
 
     observations[i].id = -1;
 
@@ -161,12 +158,12 @@ void ParticleFilter::resample() {
     weights.push_back(particles[i].weight);
   }
 
-  uniform_int_distribution<int> uniform_int_dist(0, num_particles-1);
+  std::uniform_int_distribution<int> uniform_int_dist(0, num_particles-1);
   auto idx = uniform_int_dist(gen);
 
   double max_weight = *max_element(weights.begin(), weights.end());
 
-  uniform_real_distribution<double> uniform_real_dist(0.0, max_weight);
+  std::uniform_real_distribution<double> uniform_real_dist(0.0, max_weight);
 
   double beta = 0.0;
   for (int i = 0; i < num_particles; i++) {
