@@ -68,18 +68,18 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
                                      vector<LandmarkObs>& observations) {
 
-  for (auto &observation: observations) {
+  for (int i = 0; i < observations.size(); i++) {
 
-    double minimum_dist = numeric_limits<double>::max();
+    double minimum_distance = numeric_limits<double>::max();
 
-    observation.id = -1;
+    observations[i].id = -1;
 
-    for (auto &pred: predicted ) {
-      double distance = dist(pred.x, pred.y, observation.x, observation.y);
+    for (int j = 0; j < predicted.size(); j++ ) {
+      double distance = dist(predicted[j].x, predicted[j].y, observations[i].x, observations[i].y);
 
-      if (distance < minimum_dist) {
-        minimum_dist = distance;
-        observation.id = pred.id;
+      if (distance < minimum_distance) {
+        minimum_distance = distance;
+        observations[i].id = predicted[j].id;
       }
 
     }
@@ -116,11 +116,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     // Observation association to landmark.
     dataAssociation(close_landmarks, observed_marks);
 
-    // reinitialize weights
+    // reseting the weights
     particles[i].weight = 1.0;
     // compute weights
     for(unsigned int j = 0; j < observed_marks.size(); j++) {
-
 
       double x_landmark;
       double y_landmark;
